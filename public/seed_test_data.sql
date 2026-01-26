@@ -4,7 +4,7 @@
 
 BEGIN;
 
--- 1. Routes (Dhaka)
+-- 1. Routes
 INSERT INTO "Route" ("StartLocation", "EndLocation", "Distance")
 VALUES
 ('Uttara', 'Gulshan', 14.50),
@@ -12,7 +12,7 @@ VALUES
 ('Motijheel', 'Banani', 9.75),
 ('Farmgate', 'Mohakhali', 6.30);
 
--- 2. Drivers (Bangladeshi names)
+-- 2. Drivers
 INSERT INTO "Driver" ("Name", "LicenseNumber", "ContactInfo")
 VALUES
 ('Md. Rahim Uddin', 'DHK-DL-1001', 'rahim@gmail.com'),
