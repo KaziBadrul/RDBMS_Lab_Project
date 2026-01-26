@@ -2,22 +2,28 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   _req: Request,
-  { params }: { params: { tripId: string } },
+  context: { params: Promise<{ tripId: string }> },
 ) {
-  const tripId = Number(params.tripId);
-  if (!Number.isFinite(tripId))
+  const { tripId } = await context.params; // ✅ await params
+  const id = Number(tripId);
+
+  if (!Number.isFinite(id)) {
     return new Response("Invalid tripId", { status: 400 });
+  }
 
   const seats = await prisma.seat.findMany({
-    where: { tripId },
+    where: { tripId: id },
     orderBy: { seatNumber: "asc" },
-    select: { seatNumber: true, status: true },
+    select: {
+      seatNumber: true,
+      status: true,
+    },
   });
 
-  // UI expects seatNo + status
-  const payload = seats.map((s) => ({
-    seatNo: s.seatNumber,
-    status: s.status,
-  }));
-  return Response.json(payload);
+  return Response.json(
+    seats.map((s) => ({
+      seatNo: s.seatNumber,
+      status: s.status,
+    })),
+  );
 }

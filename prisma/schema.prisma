@@ -28,7 +28,7 @@ model Driver {
 
 model Vehicle {
   vehicleId          Int                    @id @default(autoincrement()) @map("VehicleID")
-  licensePlate       String                 @unique @map("LicensePlate") @db.VarChar(20)
+  licensePlate       String                 @unique @map("LicensePlate") @db.VarChar(30)
   capacity           Int                    @map("Capacity")
   status             VehicleStatus          @default(active) @map("Status")
   fuelRecords        FuelRecord[]
