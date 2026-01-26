@@ -3,6 +3,8 @@ import DriverCard from "./DriverCard";
 import MaintenanceCard from "./MaintenanceCard";
 import TripCard from "./TripCard";
 
+import Link from "next/link";
+
 export default function Dashboard() {
   return (
     <main className="p-8 max-w-7xl mx-auto">
@@ -11,7 +13,9 @@ export default function Dashboard() {
       </h1>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <TicketingCard />
+        <Link href="/ticketing">
+          <TicketingCard />
+        </Link>
         <DriverCard />
         <MaintenanceCard />
         <TripCard />

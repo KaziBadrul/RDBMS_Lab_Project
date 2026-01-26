@@ -1,18 +1,18 @@
 /* Tailwind v4 setup */
 @import "tailwindcss";
-@tailwind utilities;
+/* @tailwind utilities; */
 
 @theme {
   --color-darkRed: #780000;
   --color-red: #c1121f;
-  --color-cream: #fdf0d5;
+  --color-cream: #f2f4ff;
   --color-navy: #003049;
   --color-blue: #669bbc;
 }
 
 /* Force light mode */
 :root {
-  --background: #fdf0d5;
+  --background: #f2f4ff;
   --foreground: #003049;
 
   color-scheme: light;
