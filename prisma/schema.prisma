@@ -1,38 +1,245 @@
-// prisma/schema.prisma
-
-datasource db {
-  provider = "postgresql"
-}
-
 generator client {
   provider = "prisma-client-js"
 }
 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleStatus {
+  active
+  inactive
+  maintenance
+}
+
+enum SeatStatus {
+  available
+  held
+  sold
+}
+
+enum UserRoleType {
+  admin
+  passenger
+  driver
+  mechanic
+}
+
+enum IncidentSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum PaymentMethod {
+  cash
+  card
+  mobile
+  other
+}
+
+model Route {
+  routeId       Int    @id @default(autoincrement()) @map("RouteID")
+  startLocation String @map("StartLocation") @db.VarChar(100)
+  endLocation   String @map("EndLocation") @db.VarChar(100)
+  distance      Decimal @map("Distance") @db.Decimal(6, 2)
+
+  trips         Trip[]
+
+  @@map("Route")
+}
+
+model Driver {
+  driverId      Int    @id @default(autoincrement()) @map("DriverID")
+  name          String @map("Name") @db.VarChar(100)
+  licenseNumber String @unique @map("LicenseNumber") @db.VarChar(50)
+  contactInfo   String? @map("ContactInfo") @db.VarChar(150)
+
+  trips         Trip[]
+
+  @@map("Driver")
+}
+
+model Vehicle {
+  vehicleId     Int    @id @default(autoincrement()) @map("VehicleID")
+  licensePlate  String @unique @map("LicensePlate") @db.VarChar(20)
+  capacity      Int    @map("Capacity")
+  status        VehicleStatus @default(active) @map("Status")
+
+  trips               Trip[]
+  maintenanceRecords  MaintenanceRecord[]
+  fuelRecords         FuelRecord[]
+  scheduledMaints     ScheduledMaintenance[]
+  incidentReports     IncidentReport[]
+
+  @@map("Vehicle")
+}
+
+model Passenger {
+  passengerId  Int    @id @default(autoincrement()) @map("PassengerID")
+  name         String @map("Name") @db.VarChar(100)
+  contactInfo  String? @map("ContactInfo") @db.VarChar(150)
+
+  tickets      Ticket[]
+
+  @@map("Passenger")
+}
+
+model UserRole {
+  userId    Int    @id @default(autoincrement()) @map("UserID")
+  username  String @unique @map("Username") @db.VarChar(50)
+  role      UserRoleType @default(passenger) @map("Role")
+
+  auditLogs AuditLog[]
+
+  @@map("UserRole")
+}
+
 model Trip {
-  id        Int     @id @default(autoincrement())
-  code      String  @unique
-  price     Int
-  capacity  Int
-  seats     Seat[]
-  tickets   Ticket[]
+  tripId        Int      @id @default(autoincrement()) @map("TripID")
+  routeId       Int      @map("RouteID")
+  vehicleId     Int      @map("VehicleID")
+  driverId      Int      @map("DriverID")
+  departureTime DateTime @map("DepartureTime")
+  arrivalTime   DateTime? @map("ArrivalTime")
+
+  route   Route   @relation(fields: [routeId], references: [routeId], onUpdate: Cascade, onDelete: Restrict)
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onUpdate: Cascade, onDelete: Restrict)
+  driver  Driver  @relation(fields: [driverId], references: [driverId], onUpdate: Cascade, onDelete: Restrict)
+
+  seats    Seat[]
+  tickets  Ticket[]
+  incidents IncidentReport[]
+
+  @@index([departureTime], map: "idx_trip_departure")
+  @@index([vehicleId], map: "idx_trip_vehicle")
+  @@index([driverId], map: "idx_trip_driver")
+  @@map("Trip")
 }
 
 model Seat {
-  id      Int    @id @default(autoincrement())
-  tripId  Int
-  number  Int
-  status  String @default("available")
+  tripId     Int @map("TripID")
+  seatNumber Int @map("SeatNumber")
+  status     SeatStatus @default(available) @map("Status")
 
-  trip Trip @relation(fields: [tripId], references: [id])
+  trip   Trip @relation(fields: [tripId], references: [tripId], onUpdate: Cascade, onDelete: Cascade)
+  tickets Ticket[]
 
-  @@unique([tripId, number])
+  @@id([tripId, seatNumber])
+  @@index([tripId, status], map: "idx_seat_trip_status")
+  @@map("Seat")
 }
 
 model Ticket {
-  id        Int      @id @default(autoincrement())
-  tripId    Int
-  passenger String
-  createdAt DateTime @default(now())
+  ticketId     Int      @id @default(autoincrement()) @map("TicketID")
+  tripId       Int      @map("TripID")
+  passengerId  Int      @map("PassengerID")
+  seatNumber   Int      @map("SeatNumber")
+  price        Decimal  @map("Price") @db.Decimal(8, 2)
+  purchaseDate DateTime @default(now()) @map("PurchaseDate")
 
-  trip Trip @relation(fields: [tripId], references: [id])
+  trip      Trip      @relation(fields: [tripId], references: [tripId], onUpdate: Cascade, onDelete: Restrict)
+  passenger Passenger @relation(fields: [passengerId], references: [passengerId], onUpdate: Cascade, onDelete: Restrict)
+
+  // composite relation to Seat
+  seat Seat @relation(fields: [tripId, seatNumber], references: [tripId, seatNumber], onUpdate: Cascade, onDelete: Restrict)
+
+  payment Payment?
+
+  @@unique([tripId, seatNumber], map: "uq_trip_seat")
+  @@index([tripId], map: "idx_ticket_trip")
+  @@index([passengerId], map: "idx_ticket_passenger")
+  @@map("Ticket")
+}
+
+model Payment {
+  paymentId     Int      @id @default(autoincrement()) @map("PaymentID")
+  ticketId      Int      @unique @map("TicketID")
+  amount        Decimal  @map("Amount") @db.Decimal(8, 2)
+  paymentMethod PaymentMethod @default(other) @map("PaymentMethod")
+  paymentDate   DateTime @default(now()) @map("PaymentDate")
+
+  ticket Ticket @relation(fields: [ticketId], references: [ticketId], onUpdate: Cascade, onDelete: Cascade)
+
+  @@map("Payment")
+}
+
+model MaintenanceRecord {
+  recordId    Int      @id @default(autoincrement()) @map("RecordID")
+  vehicleId   Int      @map("VehicleID")
+  date        DateTime @map("Date") @db.Date
+  description String?  @map("Description")
+  cost        Decimal? @map("Cost") @db.Decimal(10, 2)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([vehicleId, date], map: "idx_maintenance_vehicle_date")
+  @@map("MaintenanceRecord")
+}
+
+model FuelRecord {
+  fuelRecordId Int      @id @default(autoincrement()) @map("FuelRecordID")
+  vehicleId    Int      @map("VehicleID")
+  date         DateTime @map("Date") @db.Date
+  fuelAmount   Decimal  @map("FuelAmount") @db.Decimal(8, 2)
+  cost         Decimal? @map("Cost") @db.Decimal(10, 2)
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([vehicleId, date], map: "idx_fuel_vehicle_date")
+  @@map("FuelRecord")
+}
+
+model ScheduledMaintenance {
+  scheduleId    Int      @id @default(autoincrement()) @map("ScheduleID")
+  vehicleId     Int      @map("VehicleID")
+  scheduledDate DateTime @map("ScheduledDate") @db.Date
+  description   String?  @map("Description")
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [vehicleId], onUpdate: Cascade, onDelete: Cascade)
+
+  @@index([vehicleId, scheduledDate], map: "idx_sched_vehicle_date")
+  @@map("ScheduledMaintenance")
+}
+
+model IncidentReport {
+  incidentId   Int      @id @default(autoincrement()) @map("IncidentID")
+  vehicleId    Int?     @map("VehicleID")
+  tripId       Int?     @map("TripID")
+  incidentDate DateTime @map("IncidentDate")
+  description  String   @map("Description")
+  severity     IncidentSeverity @default(low) @map("Severity")
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [vehicleId], onUpdate: Cascade, onDelete: SetNull)
+  trip    Trip?    @relation(fields: [tripId], references: [tripId], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([incidentDate], map: "idx_incident_date")
+  @@map("IncidentReport")
+}
+
+model AuditLog {
+  logId     Int      @id @default(autoincrement()) @map("LogID")
+  action    String   @map("Action") @db.VarChar(50)
+  tableName String   @map("TableName") @db.VarChar(50)
+  recordId  Int      @map("RecordID")
+  timestamp DateTime @default(now()) @map("Timestamp")
+  userId    Int?     @map("UserID")
+  details   Json?    @map("Details")
+
+  user UserRole? @relation(fields: [userId], references: [userId], onUpdate: Cascade, onDelete: SetNull)
+
+  @@index([timestamp], map: "idx_audit_timestamp")
+  @@index([tableName, recordId], map: "idx_audit_table_record")
+  @@map("AuditLog")
+}
+
+model DailySummary {
+  summaryDate      DateTime @id @map("SummaryDate") @db.Date
+  totalTrips       Int      @map("TotalTrips")
+  totalTicketsSold Int      @map("TotalTicketsSold")
+  totalRevenue     Decimal  @map("TotalRevenue") @db.Decimal(12, 2)
+
+  @@map("DailySummary")
 }
