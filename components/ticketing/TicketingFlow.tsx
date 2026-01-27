@@ -35,6 +35,9 @@ export default function TicketingFlow() {
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [passengerName, setPassengerName] = useState("");
+  const [passengerContact, setPassengerContact] = useState("");
+
   // 1) Load trips once
   useEffect(() => {
     (async () => {
@@ -131,14 +134,25 @@ export default function TicketingFlow() {
       );
       setSeats(optimistic);
 
+      if (!passengerName.trim()) {
+        setError("Passenger name is required.");
+        return;
+      }
+      if (!passengerContact.trim()) {
+        setError("Passenger phone/email is required.");
+        return;
+      }
+
       const res = await fetch("/api/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tripId: selectedTripId,
           seatNumbers: selectedSeats,
-          // TODO: replace with real passenger form input
-          passenger: { name: "Demo Passenger", contactInfo: "0123456789" },
+          passenger: {
+            name: passengerName.trim(),
+            contactInfo: passengerContact.trim(),
+          },
         }),
       });
 
@@ -147,6 +161,9 @@ export default function TicketingFlow() {
         await refreshSeats();
         throw new Error(await res.text());
       }
+
+      setPassengerName("");
+      setPassengerContact("");
 
       setSelectedSeats([]);
       // Always refresh after booking so client matches DB exactly
@@ -272,8 +289,40 @@ export default function TicketingFlow() {
             </div>
           </div>
 
+          <div className="mt-5 grid gap-3">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Passenger Name
+              </label>
+              <input
+                value={passengerName}
+                onChange={(e) => setPassengerName(e.target.value)}
+                placeholder="e.g. Kazi Badrul Hasan"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700">
+                Phone / Email
+              </label>
+              <input
+                value={passengerContact}
+                onChange={(e) => setPassengerContact(e.target.value)}
+                placeholder="e.g. 017xx… or name@email.com"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+              />
+            </div>
+          </div>
+
           <button
-            disabled={booking || selectedSeats.length === 0 || !selectedTripId}
+            disabled={
+              booking ||
+              selectedSeats.length === 0 ||
+              !selectedTripId ||
+              !passengerName.trim() ||
+              !passengerContact.trim()
+            }
             onClick={confirmBooking}
             className="mt-5 w-full rounded-full bg-rose-600 text-white py-2.5 font-semibold hover:bg-rose-700 disabled:opacity-40"
           >

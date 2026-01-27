@@ -16,7 +16,9 @@ export default function Dashboard() {
         <Link href="/ticketing">
           <TicketingCard />
         </Link>
-        <DriverCard />
+        <Link href="/driver">
+          <DriverCard />
+        </Link>
         <MaintenanceCard />
         <TripCard />
       </div>

@@ -282,3 +282,76 @@ CREATE TABLE IF NOT EXISTS "DailySummary" (
   "TotalTicketsSold" INT NOT NULL CHECK ("TotalTicketsSold" >= 0),
   "TotalRevenue"     NUMERIC(12,2) NOT NULL CHECK ("TotalRevenue" >= 0)
 );
+
+CREATE TABLE IF NOT EXISTS "DriverVehicleAssignment" (
+  "AssignmentID" SERIAL PRIMARY KEY,
+  "DriverID" INT NOT NULL UNIQUE,
+  "VehicleID" INT NOT NULL UNIQUE,
+  "AssignedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT "fk_assign_driver"
+    FOREIGN KEY ("DriverID") REFERENCES "Driver"("DriverID")
+    ON UPDATE CASCADE ON DELETE CASCADE,
+
+  CONSTRAINT "fk_assign_vehicle"
+    FOREIGN KEY ("VehicleID") REFERENCES "Vehicle"("VehicleID")
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "idx_assign_driver" ON "DriverVehicleAssignment"("DriverID");
+CREATE INDEX IF NOT EXISTS "idx_assign_vehicle" ON "DriverVehicleAssignment"("VehicleID");
+
+-- DRIVER SHIFT ASSIGNMENT AND HISTORY CREATION
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'shift_type') THEN
+    CREATE TYPE shift_type AS ENUM ('morning', 'day', 'evening', 'night');
+  END IF;
+END $$;
+
+-- Current assignment per day+shift
+CREATE TABLE IF NOT EXISTS "DriverShiftAssignment" (
+  "AssignmentID" SERIAL PRIMARY KEY,
+  "DriverID" INT NOT NULL,
+  "VehicleID" INT NOT NULL,
+  "AssignDate" DATE NOT NULL,
+  "Shift" shift_type NOT NULL,
+  "AssignedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "UnassignedAt" TIMESTAMP NULL,
+
+  CONSTRAINT "fk_dsa_driver"
+    FOREIGN KEY ("DriverID") REFERENCES "Driver"("DriverID")
+    ON UPDATE CASCADE ON DELETE CASCADE,
+
+  CONSTRAINT "fk_dsa_vehicle"
+    FOREIGN KEY ("VehicleID") REFERENCES "Vehicle"("VehicleID")
+    ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+-- Enforce 1 driver ↔ 1 vehicle per day+shift
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_dsa_driver_date_shift"
+  ON "DriverShiftAssignment"("DriverID","AssignDate","Shift")
+  WHERE "UnassignedAt" IS NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS "uq_dsa_vehicle_date_shift"
+  ON "DriverShiftAssignment"("VehicleID","AssignDate","Shift")
+  WHERE "UnassignedAt" IS NULL;
+
+CREATE INDEX IF NOT EXISTS "idx_dsa_date_shift" ON "DriverShiftAssignment"("AssignDate","Shift");
+
+-- History table: every change logged
+CREATE TABLE IF NOT EXISTS "DriverShiftAssignmentHistory" (
+  "HistoryID" SERIAL PRIMARY KEY,
+  "AssignDate" DATE NOT NULL,
+  "Shift" shift_type NOT NULL,
+  "Action" VARCHAR(20) NOT NULL, -- ASSIGN / UNASSIGN / REASSIGN
+  "DriverID" INT,
+  "VehicleID" INT,
+  "PrevDriverID" INT,
+  "PrevVehicleID" INT,
+  "ChangedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "Note" TEXT
+);
+
+CREATE INDEX IF NOT EXISTS "idx_dsa_hist_date_shift" ON "DriverShiftAssignmentHistory"("AssignDate","Shift");
+CREATE INDEX IF NOT EXISTS "idx_dsa_hist_changedat" ON "DriverShiftAssignmentHistory"("ChangedAt");

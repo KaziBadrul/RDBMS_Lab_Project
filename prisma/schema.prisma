@@ -17,20 +17,24 @@ model Route {
 }
 
 model Driver {
-  driverId      Int     @id @default(autoincrement()) @map("DriverID")
-  name          String  @map("Name") @db.VarChar(100)
-  licenseNumber String  @unique @map("LicenseNumber") @db.VarChar(50)
-  contactInfo   String? @map("ContactInfo") @db.VarChar(150)
-  trips         Trip[]
+  driverId         Int                      @id @default(autoincrement()) @map("DriverID")
+  name             String                   @map("Name") @db.VarChar(100)
+  licenseNumber    String                   @unique @map("LicenseNumber") @db.VarChar(50)
+  contactInfo      String?                  @map("ContactInfo") @db.VarChar(150)
+  shiftAssignments DriverShiftAssignment[]
+  assignment       DriverVehicleAssignment?
+  trips            Trip[]
 
   @@map("Driver")
 }
 
 model Vehicle {
-  vehicleId          Int                    @id @default(autoincrement()) @map("VehicleID")
-  licensePlate       String                 @unique @map("LicensePlate") @db.VarChar(30)
-  capacity           Int                    @map("Capacity")
-  status             VehicleStatus          @default(active) @map("Status")
+  vehicleId          Int                      @id @default(autoincrement()) @map("VehicleID")
+  licensePlate       String                   @unique @map("LicensePlate") @db.VarChar(30)
+  capacity           Int                      @map("Capacity")
+  status             VehicleStatus            @default(active) @map("Status")
+  shiftAssignments   DriverShiftAssignment[]
+  assignment         DriverVehicleAssignment?
   fuelRecords        FuelRecord[]
   incidentReports    IncidentReport[]
   maintenanceRecords MaintenanceRecord[]
@@ -193,6 +197,51 @@ model DailySummary {
   @@map("DailySummary")
 }
 
+model DriverVehicleAssignment {
+  assignmentId Int      @id @default(autoincrement()) @map("AssignmentID")
+  driverId     Int      @unique @map("DriverID")
+  vehicleId    Int      @unique @map("VehicleID")
+  assignedAt   DateTime @default(now()) @map("AssignedAt") @db.Timestamp(6)
+  driver       Driver   @relation(fields: [driverId], references: [driverId], onDelete: Cascade, map: "fk_assign_driver")
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade, map: "fk_assign_vehicle")
+
+  @@index([driverId], map: "idx_assign_driver")
+  @@index([vehicleId], map: "idx_assign_vehicle")
+  @@map("DriverVehicleAssignment")
+}
+
+model DriverShiftAssignment {
+  assignmentId Int        @id @default(autoincrement()) @map("AssignmentID")
+  driverId     Int        @map("DriverID")
+  vehicleId    Int        @map("VehicleID")
+  assignDate   DateTime   @map("AssignDate") @db.Date
+  shift        shift_type @map("Shift")
+  assignedAt   DateTime   @default(now()) @map("AssignedAt") @db.Timestamp(6)
+  unassignedAt DateTime?  @map("UnassignedAt") @db.Timestamp(6)
+  driver       Driver     @relation(fields: [driverId], references: [driverId], onDelete: Cascade, map: "fk_dsa_driver")
+  vehicle      Vehicle    @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade, map: "fk_dsa_vehicle")
+
+  @@index([assignDate, shift], map: "idx_dsa_date_shift")
+  @@map("DriverShiftAssignment")
+}
+
+model DriverShiftAssignmentHistory {
+  historyId     Int        @id @default(autoincrement()) @map("HistoryID")
+  assignDate    DateTime   @map("AssignDate") @db.Date
+  shift         shift_type @map("Shift")
+  action        String     @map("Action") @db.VarChar(20)
+  driverId      Int?       @map("DriverID")
+  vehicleId     Int?       @map("VehicleID")
+  prevDriverId  Int?       @map("PrevDriverID")
+  prevVehicleId Int?       @map("PrevVehicleID")
+  changedAt     DateTime   @default(now()) @map("ChangedAt") @db.Timestamp(6)
+  note          String?    @map("Note")
+
+  @@index([assignDate, shift], map: "idx_dsa_hist_date_shift")
+  @@index([changedAt], map: "idx_dsa_hist_changedat")
+  @@map("DriverShiftAssignmentHistory")
+}
+
 enum VehicleStatus {
   active
   inactive
@@ -224,4 +273,11 @@ enum PaymentMethod {
   card
   mobile
   other
+}
+
+enum shift_type {
+  morning
+  day
+  evening
+  night
 }
