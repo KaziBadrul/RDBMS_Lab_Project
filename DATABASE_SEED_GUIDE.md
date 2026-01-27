@@ -16,6 +16,7 @@ Quick reference for managing **test data** in the **City Transportation Ticketin
 ### `.env` example
 ```env
 DATABASE_URL="postgresql://transport_user:transport_pass@localhost:5432/city_transport"
+```
 
 
 ## Reset Test Data
