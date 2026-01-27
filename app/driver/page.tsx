@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type ShiftType = "morning" | "day" | "evening" | "night";
@@ -173,13 +174,21 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <button
-            onClick={loadAll}
-            disabled={loading}
-            className="rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
-          >
-            {loading ? "Loading..." : "Refresh"}
-          </button>
+          <div>
+            <button
+              onClick={loadAll}
+              disabled={loading}
+              className="mr-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+            >
+              {loading ? "Loading..." : "Refresh"}
+            </button>
+            <Link
+              href="/driver/history"
+              className="rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+            >
+              History
+            </Link>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
