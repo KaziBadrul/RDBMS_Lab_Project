@@ -6,6 +6,11 @@ const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
 });
 
+// Safe modulo for negative numbers
+function mod(n: number, m: number) {
+  return ((n % m) + m) % m;
+}
+
 async function seed() {
   console.log("🌱 Seeding Dhaka bus demo data...");
 
@@ -23,8 +28,6 @@ async function seed() {
   await prisma.fuelRecord.deleteMany();
   await prisma.scheduledMaintenance.deleteMany();
   await prisma.incidentReport.deleteMany();
-  // Keep UserRole if you want; or clear it:
-  // await prisma.userRole.deleteMany();
 
   // ---- Routes (Dhaka-ish)
   const routes = await prisma.route.createManyAndReturn({
@@ -42,7 +45,7 @@ async function seed() {
     ],
   });
 
-  // ---- Vehicles (bus related)
+  // ---- Vehicles
   const vehicles = await prisma.vehicle.createManyAndReturn({
     data: [
       {
@@ -99,13 +102,18 @@ async function seed() {
     ],
   });
 
+  // Sanity checks (fail early with helpful output)
+  if (!routes.length) throw new Error("No routes created.");
+  if (!vehicles.length) throw new Error("No vehicles created.");
+  if (!drivers.length) throw new Error("No drivers created.");
+
   // Helper: create a trip and auto-generate seats 1..capacity
   async function createTripWithSeats(opts: {
     routeId: number;
     vehicleId: number;
     driverId: number;
     departureTime: Date;
-    arrivalTime?: Date;
+    arrivalTime?: Date | null;
     price: number;
   }) {
     return prisma.$transaction(async (tx) => {
@@ -127,83 +135,109 @@ async function seed() {
       });
 
       const cap = vehicle?.capacity ?? 0;
+      if (cap <= 0) return trip.tripId;
+
       const seats = Array.from({ length: cap }, (_, i) => ({
         tripId: trip.tripId,
         seatNumber: i + 1,
         status: "available" as const,
       }));
 
-      if (seats.length) await tx.seat.createMany({ data: seats });
-
+      await tx.seat.createMany({ data: seats });
       return trip.tripId;
     });
   }
 
-  // ---- Trips (today-ish schedule; adjust as you want)
-  const now = new Date();
-  const today9 = new Date(now);
-  today9.setHours(9, 0, 0, 0);
-  const today12 = new Date(now);
-  today12.setHours(12, 0, 0, 0);
-  const today15 = new Date(now);
-  today15.setHours(15, 30, 0, 0);
-  const today18 = new Date(now);
-  today18.setHours(18, 0, 0, 0);
-
-  // Map IDs easily
-  const r = (i: number) => routes[i].routeId;
-  const v = (i: number) => vehicles[i].vehicleId;
-  const d = (i: number) => drivers[i].driverId;
+  // ---- Trips (multi-day schedule)
+  const DAYS_AHEAD = 14;
+  const DAYS_BACK = 3;
 
   const tripIds: number[] = [];
-  tripIds.push(
-    await createTripWithSeats({
-      routeId: r(0),
-      vehicleId: v(0),
-      driverId: d(0),
-      departureTime: today9,
-      price: 60,
-    }),
-  );
-  tripIds.push(
-    await createTripWithSeats({
-      routeId: r(1),
-      vehicleId: v(1),
-      driverId: d(1),
-      departureTime: today12,
-      price: 50,
-    }),
-  );
-  tripIds.push(
-    await createTripWithSeats({
-      routeId: r(2),
-      vehicleId: v(2),
-      driverId: d(2),
-      departureTime: today15,
-      price: 55,
-    }),
-  );
-  tripIds.push(
-    await createTripWithSeats({
-      routeId: r(3),
-      vehicleId: v(3),
-      driverId: d(3),
-      departureTime: today18,
-      price: 70,
-    }),
-  );
-  tripIds.push(
-    await createTripWithSeats({
-      routeId: r(4),
-      vehicleId: v(4),
-      driverId: d(0),
-      departureTime: new Date(today9.getTime() + 60 * 60 * 1000),
-      price: 35,
-    }),
-  );
+
+  // Date helpers
+  function startOfDay(dt: Date) {
+    const x = new Date(dt);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
+  function addDays(dt: Date, days: number) {
+    const x = new Date(dt);
+    x.setDate(x.getDate() + days);
+    return x;
+  }
+  function atTime(day: Date, hh: number, mm: number) {
+    const x = new Date(day);
+    x.setHours(hh, mm, 0, 0);
+    return x;
+  }
+
+  // Price heuristic
+  function calcPrice(distance: number) {
+    const raw = 20 + distance * 2.2;
+    return Math.round(raw / 5) * 5;
+  }
+
+  const departures = [
+    { hh: 7, mm: 30 },
+    { hh: 9, mm: 0 },
+    { hh: 11, mm: 0 },
+    { hh: 13, mm: 30 },
+    { hh: 16, mm: 0 },
+    { hh: 18, mm: 30 },
+    { hh: 20, mm: 30 },
+  ];
+
+  const baseDay = startOfDay(new Date());
+
+  for (let dayOffset = -DAYS_BACK; dayOffset <= DAYS_AHEAD; dayOffset++) {
+    const day = addDays(baseDay, dayOffset);
+
+    for (let slot = 0; slot < departures.length; slot++) {
+      const dep = departures[slot];
+      const departureTime = atTime(day, dep.hh, dep.mm);
+
+      // deterministic rotation
+      const routeIndex = mod(dayOffset * 3 + slot, routes.length);
+      const vehicleIndex = mod(dayOffset * 2 + slot, vehicles.length);
+      const driverIndex = mod(dayOffset + slot, drivers.length);
+
+      const route = routes[routeIndex];
+      const vehicle = vehicles[vehicleIndex];
+      const driver = drivers[driverIndex];
+
+      // extra safety in case DB/Prisma returns unexpected shapes
+      if (!route?.routeId)
+        throw new Error(`Route missing routeId at index ${routeIndex}`);
+      if (!vehicle?.vehicleId)
+        throw new Error(`Vehicle missing vehicleId at index ${vehicleIndex}`);
+      if (!driver?.driverId)
+        throw new Error(`Driver missing driverId at index ${driverIndex}`);
+
+      const avgSpeed = 18; // km/h
+      const mins = Math.max(
+        20,
+        Math.round((Number(route.distance) / avgSpeed) * 60),
+      );
+      const arrivalTime = new Date(departureTime.getTime() + mins * 60 * 1000);
+
+      const price = calcPrice(Number(route.distance));
+
+      tripIds.push(
+        await createTripWithSeats({
+          routeId: route.routeId,
+          vehicleId: vehicle.vehicleId,
+          driverId: driver.driverId,
+          departureTime,
+          arrivalTime,
+          price,
+        }),
+      );
+    }
+  }
 
   console.log("✅ Seed complete.");
-  console.log("Trips created:", tripIds);
+  console.log("Trips created:", tripIds.length);
+  console.log("Example trip IDs:", tripIds.slice(0, 10));
 }
 
 seed()
