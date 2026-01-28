@@ -36,42 +36,43 @@ npx prisma db seed
 4. **Analytical Query** - Calculates 7-day rolling average of daily passengers per route
 5. **CUBE/GROUPING SETS** - Revenue summary grouped by route, vehicle, and date combinations
 6. **Reporting Query** - Comprehensive statistics: total trips, cancellations, revenue, tickets (last 30 days)
-7. **JSON Query** - Extracts maintenance details from MaintenanceRecord table
-8. **Index Optimization** - Efficient trip lookup by route and date (uses trip_date, route_id index)
+7. **JSON Extraction** - Extracts and formats audit log details from JSONB column in AuditLog
+8. **Index Optimization** - Efficient trip lookup by departure time (uses idx_trip_departure)
+
+### Application Integration (Next.js & Prisma)
+
+- **Driver Management UI** - React-based interface for assigning/unassigning drivers to vehicles per shift.
+- **Ticketing Flow** - Multi-step booking UI (Trip select → Seat select → Passenger info → Confirmation).
+- **API Transaction Layer**:
+  - `POST /api/assign-driver`: Handles driver-vehicle-shift assignments using Prisma transactions.
+  - `POST /api/book`: Manages atomic concurrent seat bookings with ACID compliance via `$transaction`.
 
 ## Left to Do
 
 ### Frontend/API Integration
 
-- Create Next.js API routes to call stored procedures
-- Build React components for:
-  - Driver assignment UI
-  - Ticket booking flow (call record_ticket_purchase)
-  - Daily summary dashboard
-  - Trip management interface
+- Build **Daily Summary Dashboard** to visualize metrics from `DailySummary` table
+- Implement **Trip Management Interface** (Create/Edit/Cancel trips)
+- Add **Incident Reporting UI** for drivers/mechanics
 
 ### Testing & Validation
 
-- Insert test data into database tables
-- Test all procedures with various edge cases
-- Validate triggers fire correctly on insert/update operations
-- Performance test complex queries with larger datasets
-- Test transaction isolation for concurrent seat bookings
+- Test all SQL procedures/functions with various edge cases via database client
+- Performance test complex queries with larger datasets (e.g., 100k+ tickets)
+- Verify transaction isolation for concurrent seat bookings under high load
 
 ### Enhancements
 
-- Implement pagination for large query results
-- Add error handling and logging in procedures
+- Implement **Pagination** for audit logs and large trip lists
 - Create stored procedures for:
-  - Trip cancellation with refund handling
-  - Driver performance analytics
-  - Revenue forecasting
-- Implement caching strategies for frequently accessed data
-- Add monitoring/alerting for critical operations
+  - Trip cancellation with automated refund handling
+  - Driver performance analytics (trips completed vs incidents)
+  - Revenue forecasting based on historical data
+- Implement caching strategies for route and vehicle occupancy data
 
 ### Documentation
 
-- Add inline SQL comments explaining complex query logic
-- Document procedure parameters and return values
+- Add inline SQL comments explaining complex query logic in `public/database_procedures_triggers.sql`
+- Document procedure parameters and return values in a dedicated API guide
 - Create ER diagram for schema relationships
 - Document transaction isolation levels used for seat booking
