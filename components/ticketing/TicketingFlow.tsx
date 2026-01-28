@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 type TripUI = {
   id: number;
   departureTime: string;
+  driver: string;
   price: number;
   route: { start: string; end: string };
   vehicle: { capacity: number };
@@ -20,7 +21,18 @@ function formatDT(iso: string) {
   return d.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
 }
 
+function todayYYYYMMDD() {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export default function TicketingFlow() {
+  // ✅ Date picker (used to filter trips)
+  const [tripDate, setTripDate] = useState<string>(todayYYYYMMDD());
+
   // DB-backed trips
   const [trips, setTrips] = useState<TripUI[]>([]);
   const [selectedTripId, setSelectedTripId] = useState<number | null>(null);
@@ -38,28 +50,39 @@ export default function TicketingFlow() {
   const [passengerName, setPassengerName] = useState("");
   const [passengerContact, setPassengerContact] = useState("");
 
-  // 1) Load trips once
+  // 1) Load trips whenever date changes (Option B)
   useEffect(() => {
     (async () => {
       try {
         setLoadingTrips(true);
         setError(null);
 
-        const res = await fetch("/api/trips", { cache: "no-store" });
+        const res = await fetch(
+          `/api/trips?date=${encodeURIComponent(tripDate)}`,
+          {
+            cache: "no-store",
+          },
+        );
         if (!res.ok) throw new Error(await res.text());
 
         const data: TripUI[] = await res.json();
         setTrips(data);
 
-        // Default select first trip
-        setSelectedTripId(data[0]?.id ?? null);
+        // Select first trip for that date (or clear if none)
+        const firstId = data[0]?.id ?? null;
+        setSelectedTripId(firstId);
+        setSelectedSeats([]);
+        setSeats([]);
       } catch (e: any) {
         setError(e?.message ?? "Failed to load trips");
+        setTrips([]);
+        setSelectedTripId(null);
+        setSeats([]);
       } finally {
         setLoadingTrips(false);
       }
     })();
-  }, []);
+  }, [tripDate]);
 
   // 2) Load seats whenever selectedTripId changes
   useEffect(() => {
@@ -122,26 +145,26 @@ export default function TicketingFlow() {
   async function confirmBooking() {
     if (!selectedTripId || !selectedTrip || selectedSeats.length === 0) return;
 
+    if (!passengerName.trim()) {
+      setError("Passenger name is required.");
+      return;
+    }
+    if (!passengerContact.trim()) {
+      setError("Passenger phone/email is required.");
+      return;
+    }
+
     try {
       setBooking(true);
       setError(null);
 
-      // Optional optimistic UI: mark selected seats as sold immediately
+      // Optional optimistic UI
       const optimistic = seats.map((s) =>
         selectedSeats.includes(s.seatNo)
           ? { ...s, status: "sold" as const }
           : s,
       );
       setSeats(optimistic);
-
-      if (!passengerName.trim()) {
-        setError("Passenger name is required.");
-        return;
-      }
-      if (!passengerContact.trim()) {
-        setError("Passenger phone/email is required.");
-        return;
-      }
 
       const res = await fetch("/api/book", {
         method: "POST",
@@ -157,16 +180,13 @@ export default function TicketingFlow() {
       });
 
       if (!res.ok) {
-        // rollback: reload seats from DB
         await refreshSeats();
         throw new Error(await res.text());
       }
 
       setPassengerName("");
       setPassengerContact("");
-
       setSelectedSeats([]);
-      // Always refresh after booking so client matches DB exactly
       await refreshSeats();
       console.log("DB Seat Booking Done!");
     } catch (e: any) {
@@ -183,7 +203,8 @@ export default function TicketingFlow() {
           Passenger Ticketing
         </h1>
         <p className="text-slate-600 mt-1">
-          Select a trip → choose seats → enter passenger info → confirm booking.
+          Pick date → select trip → choose seats → enter passenger info →
+          confirm booking.
         </p>
       </header>
 
@@ -198,10 +219,24 @@ export default function TicketingFlow() {
         <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5">
           <h2 className="text-lg font-semibold text-slate-900">Trip</h2>
 
+          {/* ✅ Date picker */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-slate-700">
+              Trip Date
+            </label>
+            <input
+              type="date"
+              value={tripDate}
+              onChange={(e) => setTripDate(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+              disabled={loadingTrips || booking}
+            />
+          </div>
+
           <select
             className="mt-4 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
             value={selectedTripId ?? ""}
-            disabled={loadingTrips || trips.length === 0}
+            disabled={loadingTrips || trips.length === 0 || booking}
             onChange={(e) => {
               setSelectedTripId(Number(e.target.value));
               setSelectedSeats([]);
@@ -209,10 +244,16 @@ export default function TicketingFlow() {
           >
             {trips.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.route.start} → {t.route.end}
+                {t.route.start} → {t.route.end} ({formatDT(t.departureTime)})
               </option>
             ))}
           </select>
+
+          {trips.length === 0 && !loadingTrips && (
+            <div className="mt-4 text-sm text-slate-600">
+              No trips found for {tripDate}.
+            </div>
+          )}
 
           {selectedTrip && (
             <div className="mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200 text-sm">
@@ -222,6 +263,10 @@ export default function TicketingFlow() {
 
               <div className="text-slate-600 mt-1">
                 Departure: {formatDT(selectedTrip.departureTime)}
+              </div>
+
+              <div className="text-slate-600 mt-1">
+                Driver: {selectedTrip.driver}
               </div>
 
               <div className="text-slate-600">
@@ -299,6 +344,7 @@ export default function TicketingFlow() {
                 onChange={(e) => setPassengerName(e.target.value)}
                 placeholder="e.g. Kazi Badrul Hasan"
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                disabled={booking}
               />
             </div>
 
@@ -311,6 +357,7 @@ export default function TicketingFlow() {
                 onChange={(e) => setPassengerContact(e.target.value)}
                 placeholder="e.g. 017xx… or name@email.com"
                 className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                disabled={booking}
               />
             </div>
           </div>
