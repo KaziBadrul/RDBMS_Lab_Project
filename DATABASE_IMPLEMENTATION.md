@@ -72,7 +72,6 @@ npx prisma db seed
 
 ### Documentation
 
-- Add inline SQL comments explaining complex query logic in `public/database_procedures_triggers.sql`
 - Document procedure parameters and return values in a dedicated API guide
 - Create ER diagram for schema relationships
 - Document transaction isolation levels used for seat booking
