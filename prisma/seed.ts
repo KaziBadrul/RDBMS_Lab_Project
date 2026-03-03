@@ -28,6 +28,18 @@ async function seed() {
   await prisma.fuelRecord.deleteMany();
   await prisma.scheduledMaintenance.deleteMany();
   await prisma.incidentReport.deleteMany();
+  await prisma.userRole.deleteMany();
+
+  // ---- Users (one per role for testing)
+  await prisma.userRole.createMany({
+    data: [
+      { username: "admin", role: "admin" },
+      { username: "passenger_test", role: "passenger" },
+      { username: "driver_test", role: "driver" },
+      { username: "mechanic_test", role: "mechanic" },
+    ],
+  });
+  console.log("👤 Seeded 4 UserRole entries.");
 
   // ---- Routes (Dhaka-ish)
   const routes = await prisma.route.createManyAndReturn({
