@@ -56,6 +56,7 @@ model Passenger {
 model UserRole {
   userId    Int          @id @default(autoincrement()) @map("UserID")
   username  String       @unique @map("Username") @db.VarChar(50)
+  password  String       @default("password123") @map("Password") @db.VarChar(255)
   role      UserRoleType @default(passenger) @map("Role")
   auditLogs AuditLog[]
 

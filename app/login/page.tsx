@@ -1,7 +1,7 @@
 import LoginForm from "@/components/LoginForm";
 
 export const metadata = {
-    title: "Sign In — CityTransport",
+    title: "Sign In — TripWise",
 };
 
 export default function LoginPage() {
@@ -10,7 +10,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
                 {/* Header */}
                 <h1 className="text-4xl font-bold text-darkRed mb-8 text-center">
-                    City Transportation System
+                    TripWise
                 </h1>
 
                 <LoginForm />

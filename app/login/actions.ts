@@ -9,17 +9,18 @@ export async function handleLogin(
     formData: FormData,
 ) {
     const username = (formData.get("username") as string)?.trim();
+    const password = (formData.get("password") as string) ?? "";
 
-    if (!username) {
-        return { error: "Please enter a username." };
+    if (!username || !password) {
+        return { error: "Please enter both username and password." };
     }
 
     const user = await prisma.userRole.findUnique({
         where: { username },
     });
 
-    if (!user) {
-        return { error: "User not found. Please check your username." };
+    if (!user || user.password !== password) {
+        return { error: "Invalid username or password." };
     }
 
     await login({

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CityTransport",
+  title: "TripWise",
   description:
     "A city-wide transport ticketing and managing system created for our RDBMS Project. ",
 };
