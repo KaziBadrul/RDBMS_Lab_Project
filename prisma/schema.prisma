@@ -161,6 +161,8 @@ model MaintenanceRecord {
   date        DateTime @map("Date") @db.Date
   description String?  @map("Description")
   cost        Decimal? @map("Cost") @db.Decimal(10, 2)
+  odometer    Int?     @map("Odometer")
+  interval    Int?     @map("Interval")
   vehicle     Vehicle  @relation(fields: [vehicleId], references: [vehicleId], onDelete: Cascade)
 
   @@index([vehicleId, date], map: "idx_maintenance_vehicle_date")
