@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { verifyPassword } from "@/lib/password";
 import { login } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -19,7 +20,7 @@ export async function handleLogin(
         where: { username },
     });
 
-    if (!user || user.password !== password) {
+    if (!user || !(await verifyPassword(password, user.passwordHash))) {
         return { error: "Invalid username or password." };
     }
 

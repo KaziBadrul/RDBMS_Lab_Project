@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { hashPassword } from "../lib/password";
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
@@ -31,12 +32,13 @@ async function seed() {
   await prisma.userRole.deleteMany();
 
   // ---- Users (one per role for testing, password: "password123")
+  const defaultHash = await hashPassword("password123");
   await prisma.userRole.createMany({
     data: [
-      { username: "admin", password: "password123", role: "admin" },
-      { username: "passenger_test", password: "password123", role: "passenger" },
-      { username: "driver_test", password: "password123", role: "driver" },
-      { username: "mechanic_test", password: "password123", role: "mechanic" },
+      { username: "admin", passwordHash: defaultHash, role: "admin" },
+      { username: "passenger_test", passwordHash: defaultHash, role: "passenger" },
+      { username: "driver_test", passwordHash: defaultHash, role: "driver" },
+      { username: "mechanic_test", passwordHash: defaultHash, role: "mechanic" },
     ],
   });
   console.log("👤 Seeded 4 UserRole entries (password: password123).");
