@@ -61,6 +61,17 @@ export default function LoginForm() {
                     </button>
                 </div>
 
+                {/* Stay logged in checkbox */}
+                <label htmlFor="rememberMe" className="mt-4 flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                        id="rememberMe"
+                        name="rememberMe"
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-gray-300 text-darkRed focus:ring-darkRed accent-darkRed"
+                    />
+                    <span className="text-sm text-navy">Stay logged in</span>
+                </label>
+
                 {/* Submit button */}
                 <button
                     type="submit"

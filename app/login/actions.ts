@@ -11,6 +11,7 @@ export async function handleLogin(
 ) {
     const username = (formData.get("username") as string)?.trim();
     const password = (formData.get("password") as string) ?? "";
+    const rememberMe = formData.get("rememberMe") === "on";
 
     if (!username || !password) {
         return { error: "Please enter both username and password." };
@@ -24,11 +25,14 @@ export async function handleLogin(
         return { error: "Invalid username or password." };
     }
 
-    await login({
-        userId: user.userId,
-        username: user.username,
-        role: user.role,
-    });
+    await login(
+        {
+            userId: user.userId,
+            username: user.username,
+            role: user.role,
+        },
+        rememberMe,
+    );
 
     redirect("/");
 }

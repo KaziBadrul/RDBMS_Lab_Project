@@ -8,14 +8,15 @@ export interface SessionUser {
 
 const COOKIE_NAME = "session_user";
 
-export async function login(user: SessionUser) {
+export async function login(user: SessionUser, rememberMe = false) {
     const cookieStore = await cookies();
     cookieStore.set(COOKIE_NAME, JSON.stringify(user), {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
-        maxAge: 60 * 60 * 24 * 7, // 7 days
+        // 30 days if "Stay logged in" is checked, otherwise session-only
+        ...(rememberMe ? { maxAge: 60 * 60 * 24 * 30 } : {}),
     });
 }
 
