@@ -70,18 +70,35 @@ model Trip {
   routeId       Int              @map("RouteID")
   tripId        Int              @id @default(autoincrement()) @map("TripID")
   vehicleId     Int              @map("VehicleID")
-  price         Decimal          @default(0) @map("Price") @db.Decimal(8, 2)
-  incidents     IncidentReport[]
-  seats         Seat[]
-  tickets       Ticket[]
-  driver        Driver           @relation(fields: [driverId], references: [driverId])
-  route         Route            @relation(fields: [routeId], references: [routeId])
-  vehicle       Vehicle          @relation(fields: [vehicleId], references: [vehicleId])
+  price             Decimal          @default(0) @map("Price") @db.Decimal(8, 2)
+  basePrice         Decimal          @default(0) @map("BasePrice") @db.Decimal(8, 2)
+  lastPriceUpdateAt DateTime?        @map("LastPriceUpdateAt")
+  pricingVersion    Int              @default(1) @map("PricingVersion")
+  incidents         IncidentReport[]
+  seats             Seat[]
+  tickets           Ticket[]
+  priceLogs         PriceChangeLog[]
+  driver            Driver           @relation(fields: [driverId], references: [driverId])
+  route             Route            @relation(fields: [routeId], references: [routeId])
+  vehicle           Vehicle          @relation(fields: [vehicleId], references: [vehicleId])
 
   @@index([departureTime], map: "idx_trip_departure")
   @@index([vehicleId], map: "idx_trip_vehicle")
   @@index([driverId], map: "idx_trip_driver")
   @@map("Trip")
+}
+
+model PriceChangeLog {
+  logId      Int      @id @default(autoincrement()) @map("LogID")
+  tripId     Int      @map("TripID")
+  oldPrice   Decimal  @map("OldPrice") @db.Decimal(8, 2)
+  newPrice   Decimal  @map("NewPrice") @db.Decimal(8, 2)
+  reason     String   @map("Reason") @db.VarChar(255)
+  changedAt  DateTime @default(now()) @map("ChangedAt")
+  trip       Trip     @relation(fields: [tripId], references: [tripId], onDelete: Cascade)
+
+  @@index([tripId], map: "idx_price_log_trip")
+  @@map("PriceChangeLog")
 }
 
 model Seat {

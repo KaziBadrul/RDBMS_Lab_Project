@@ -5,14 +5,14 @@
 ## 1) 💰 Financial & Revenue Management
 
 ### Dynamic Pricing Engine
-- [ ] Define pricing rules (e.g., occupancy ≥ 80% → remaining seats +25%)
-- [ ] Decide pricing scope: per **Trip** / **Route** / **Schedule**
-- [ ] Add DB fields if needed: `base_fare`, `current_fare`, `last_price_update_at`, `pricing_version`
-- [ ] Create `PriceChangeLog` table (trip_id, old_price, new_price, reason, changed_at)
-- [ ] Implement stored procedure/trigger:
-  - [ ] On booking/seat assignment, calculate occupancy = booked / total
-  - [ ] Apply rule(s) and update `current_fare`
-  - [ ] Log price change to `PriceChangeLog`
+- [x] Define pricing rules (e.g., occupancy ≥ 80% → remaining seats +25%)
+- [x] Decide pricing scope: per **Trip** / **Route** / **Schedule**
+- [x] Add DB fields if needed: `base_fare`, `current_fare`, `last_price_update_at`, `pricing_version`
+- [x] Create `PriceChangeLog` table (trip_id, old_price, new_price, reason, changed_at)
+- [x] Implement stored procedure/trigger:
+  - [x] On booking/seat assignment, calculate occupancy = booked / total
+  - [x] Apply rule(s) and update `current_fare`
+  - [x] Log price change to `PriceChangeLog`
 - [ ] Update Next.js booking API to always use `current_fare`
 - [ ] Admin UI: view pricing changes per trip/route
 
@@ -31,6 +31,7 @@
 - [ ] Next.js endpoint: `POST /api/tickets/:id/cancel`
 - [ ] Passenger UI: show refund amount + policy + cancellation history
 
+<!-- IGNORE -->
 ### Loyalty & Promo Codes
 - [ ] Create `PromoCode` table:
   - [ ] `code` (unique), `discount_type` (PERCENT/FIXED), `discount_value`
@@ -47,6 +48,7 @@
 
 ## 2) 🚛 Operations & Logistics
 
+<!-- IGNORE -->
 ### Fuel Efficiency Analytics (KM per Liter)
 - [ ] Ensure `FuelRecord` has: vehicle_id, liters, date, cost, odometer/km
 - [ ] Ensure `Trip` has: vehicle_id, distance (or derive from route)
@@ -69,6 +71,7 @@
   - [ ] End shift checklist form
 - [ ] Supervisor UI: open shifts + reported issues
 
+<!-- IGNORE -->
 ### Resource Optimization (AI-lite Vehicle Suggestion)
 - [ ] Define vehicle capacity tiers (Small/Medium/High-capacity)
 - [ ] Write SQL query:

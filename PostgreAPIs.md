@@ -81,6 +81,9 @@ CREATE TABLE IF NOT EXISTS "Trip" (
   "RouteID"         INTEGER   NOT NULL,
   "VehicleID"       INTEGER   NOT NULL,
   "Price"           NUMERIC(8,2) NOT NULL DEFAULT 0,
+  "BasePrice"       NUMERIC(8,2) NOT NULL DEFAULT 0,
+  "LastPriceUpdateAt" TIMESTAMP,
+  "PricingVersion"  INTEGER NOT NULL DEFAULT 1,
 
   CONSTRAINT "fk_trip_driver"
     FOREIGN KEY ("DriverID") REFERENCES "Driver"("DriverID")
@@ -98,6 +101,22 @@ CREATE TABLE IF NOT EXISTS "Trip" (
 CREATE INDEX IF NOT EXISTS "idx_trip_departure" ON "Trip" ("DepartureTime");
 CREATE INDEX IF NOT EXISTS "idx_trip_vehicle"    ON "Trip" ("VehicleID");
 CREATE INDEX IF NOT EXISTS "idx_trip_driver"     ON "Trip" ("DriverID");
+
+-- PriceChangeLog
+CREATE TABLE IF NOT EXISTS "PriceChangeLog" (
+  "LogID"      SERIAL PRIMARY KEY,
+  "TripID"     INTEGER NOT NULL,
+  "OldPrice"   NUMERIC(8,2) NOT NULL,
+  "NewPrice"   NUMERIC(8,2) NOT NULL,
+  "Reason"     VARCHAR(255) NOT NULL,
+  "ChangedAt"  TIMESTAMP NOT NULL DEFAULT now(),
+
+  CONSTRAINT "fk_pricelog_trip"
+    FOREIGN KEY ("TripID") REFERENCES "Trip"("TripID")
+    ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS "idx_price_log_trip" ON "PriceChangeLog" ("TripID");
 
 -- Seat (composite PK)
 CREATE TABLE IF NOT EXISTS "Seat" (
@@ -798,6 +817,90 @@ BEGIN
   END IF;
 
   -- 1) Ensure all seats exist and are available
+-- (Remaining book_seats logic...)
+
+-- =============================================================================
+-- DYNAMIC PRICING ENGINE
+-- =============================================================================
+
+-- Procedure to update trip price based on occupancy
+-- Rule: occupancy >= 80% -> basePrice + 25%, else basePrice
+CREATE OR REPLACE PROCEDURE update_trip_price(trip_id_param INT)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_base_price DECIMAL(8,2);
+    v_current_price DECIMAL(8,2);
+    v_new_price DECIMAL(8,2);
+    v_capacity INT;
+    v_booked_count INT;
+    v_occupancy DECIMAL;
+BEGIN
+    -- Get current trip info
+    SELECT "BasePrice", "Price" INTO v_base_price, v_current_price
+    FROM "Trip"
+    WHERE "TripID" = trip_id_param;
+
+    -- Calculate occupancy
+    SELECT v.capacity INTO v_capacity
+    FROM "Vehicle" v
+    JOIN "Trip" t ON t."VehicleID" = v."VehicleID"
+    WHERE t."TripID" = trip_id_param;
+
+    SELECT COUNT(*) INTO v_booked_count
+    FROM "Ticket"
+    WHERE "TripID" = trip_id_param;
+
+    IF v_capacity > 0 THEN
+        v_occupancy := (v_booked_count::DECIMAL / v_capacity::DECIMAL);
+    ELSE
+        v_occupancy := 0;
+    END IF;
+
+    -- Apply pricing rule
+    IF v_occupancy >= 0.8 THEN
+        v_new_price := v_base_price * 1.25;
+    ELSE
+        v_new_price := v_base_price;
+    END IF;
+
+    -- Round to nearest 5
+    v_new_price := ROUND(v_new_price / 5) * 5;
+
+    -- Update if price changed
+    IF v_new_price <> v_current_price THEN
+        UPDATE "Trip"
+        SET "Price" = v_new_price, "LastPriceUpdateAt" = NOW(), "PricingVersion" = "PricingVersion" + 1
+        WHERE "TripID" = trip_id_param;
+
+        -- Log the change
+        INSERT INTO "PriceChangeLog" ("TripID", "OldPrice", "NewPrice", "Reason", "ChangedAt")
+        VALUES (trip_id_param, v_current_price, v_new_price, 
+                CASE WHEN v_occupancy >= 0.8 THEN 'High occupancy (>=80%) surge' ELSE 'Occupancy normalized' END, 
+                NOW());
+    END IF;
+END;
+$$;
+
+-- Trigger function to call procedure on booking change
+CREATE OR REPLACE FUNCTION fn_trg_after_ticket_change()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        CALL update_trip_price(NEW."TripID");
+    ELSIF (TG_OP = 'DELETE') THEN
+        CALL update_trip_price(OLD."TripID");
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create Trigger
+DROP TRIGGER IF EXISTS trg_after_ticket_change ON "Ticket";
+CREATE TRIGGER trg_after_ticket_change
+AFTER INSERT OR DELETE ON "Ticket"
+FOR EACH ROW
+EXECUTE FUNCTION fn_trg_after_ticket_change();
   -- Lock matching seat rows so concurrent bookings serialize correctly.
   SELECT count(*)
   INTO v_available_count
