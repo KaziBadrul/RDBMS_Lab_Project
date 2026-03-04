@@ -197,30 +197,32 @@ export default function TicketingFlow() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto p-6">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-rose-800">
+  <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-6">
+    <div className="max-w-7xl mx-auto">
+
+      {/* Header */}
+      <header className="mb-10">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
           Passenger Ticketing
         </h1>
-        <p className="text-slate-600 mt-1">
-          Pick date → select trip → choose seats → enter passenger info →
-          confirm booking.
+        <p className="text-slate-600 mt-2 text-lg">
+          Pick date → select trip → choose seats → enter passenger info → confirm booking.
         </p>
       </header>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+        <div className="mb-8 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-700 shadow-sm">
           {error}
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
-        {/* LEFT PANEL */}
-        <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5">
-          <h2 className="text-lg font-semibold text-slate-900">Trip</h2>
+      <div className="grid gap-8 lg:grid-cols-[420px_1fr]">
 
-          {/* ✅ Date picker */}
-          <div className="mt-4">
+        {/* LEFT PANEL */}
+        <section className="bg-white/80 backdrop-blur-md rounded-3xl border border-white shadow-xl p-8">
+          <h2 className="text-xl font-semibold text-slate-900">Trip</h2>
+
+          <div className="mt-6">
             <label className="block text-sm font-medium text-slate-700">
               Trip Date
             </label>
@@ -228,13 +230,13 @@ export default function TicketingFlow() {
               type="date"
               value={tripDate}
               onChange={(e) => setTripDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
               disabled={loadingTrips || booking}
+              className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             />
           </div>
 
           <select
-            className="mt-4 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+            className="mt-5 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
             value={selectedTripId ?? ""}
             disabled={loadingTrips || trips.length === 0 || booking}
             onChange={(e) => {
@@ -256,8 +258,8 @@ export default function TicketingFlow() {
           )}
 
           {selectedTrip && (
-            <div className="mt-5 bg-slate-50 rounded-xl p-4 border border-slate-200 text-sm">
-              <div className="font-semibold text-slate-900">
+            <div className="mt-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl p-6 border border-indigo-100 text-sm">
+              <div className="font-semibold text-slate-900 text-base">
                 {selectedTrip.route.start} → {selectedTrip.route.end}
               </div>
 
@@ -276,7 +278,7 @@ export default function TicketingFlow() {
                   : `${availableCount} / ${selectedTrip.vehicle.capacity}`}
               </div>
 
-              <div className="mt-2 font-bold text-rose-600">
+              <div className="mt-3 text-xl font-bold text-indigo-600">
                 ৳ {selectedTrip.price} per seat
               </div>
             </div>
@@ -284,15 +286,15 @@ export default function TicketingFlow() {
         </section>
 
         {/* RIGHT PANEL */}
-        <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5">
-          <h2 className="text-lg font-semibold text-slate-900 mb-4">
+        <section className="bg-white/80 backdrop-blur-md rounded-3xl border border-white shadow-xl p-8">
+          <h2 className="text-xl font-semibold text-slate-900 mb-6">
             Seat Selection
           </h2>
 
           {loadingSeats ? (
             <div className="text-slate-600">Loading seats...</div>
           ) : (
-            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-2">
+            <div className="grid grid-cols-6 sm:grid-cols-8 md:grid-cols-10 gap-3">
               {seats.map((s) => {
                 const isSelected = selectedSeats.includes(s.seatNo);
                 const disabled = s.status !== "available" || booking;
@@ -303,13 +305,13 @@ export default function TicketingFlow() {
                     disabled={disabled}
                     onClick={() => toggleSeat(s.seatNo)}
                     className={`
-                      h-10 rounded-xl text-sm font-semibold border transition
+                      h-11 rounded-2xl text-sm font-semibold border transition-all duration-200
                       ${
                         disabled
-                          ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                          ? "bg-slate-200 text-slate-400 border-slate-200 cursor-not-allowed"
                           : isSelected
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "bg-slate-50 border-slate-300 hover:bg-sky-500 hover:text-white"
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-lg scale-105"
+                          : "bg-white border-slate-300 hover:bg-indigo-500 hover:text-white hover:border-indigo-500"
                       }
                     `}
                   >
@@ -320,21 +322,21 @@ export default function TicketingFlow() {
             </div>
           )}
 
-          <div className="mt-5 flex justify-between items-center text-sm">
+          <div className="mt-8 flex justify-between items-center text-sm border-t border-slate-200 pt-6">
             <div className="text-slate-700">
               Selected Seats:{" "}
-              <span className="font-semibold">
+              <span className="font-semibold text-slate-900">
                 {selectedSeats.length ? selectedSeats.join(", ") : "None"}
               </span>
             </div>
 
-            <div className="font-bold text-rose-600">
+            <div className="text-xl font-bold text-indigo-600">
               Total: ৳{" "}
               {selectedTrip ? selectedSeats.length * selectedTrip.price : 0}
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3">
+          <div className="mt-8 grid gap-5">
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Passenger Name
@@ -343,7 +345,7 @@ export default function TicketingFlow() {
                 value={passengerName}
                 onChange={(e) => setPassengerName(e.target.value)}
                 placeholder="e.g. Kazi Badrul Hasan"
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                 disabled={booking}
               />
             </div>
@@ -356,7 +358,7 @@ export default function TicketingFlow() {
                 value={passengerContact}
                 onChange={(e) => setPassengerContact(e.target.value)}
                 placeholder="e.g. 017xx… or name@email.com"
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                 disabled={booking}
               />
             </div>
@@ -371,12 +373,13 @@ export default function TicketingFlow() {
               !passengerContact.trim()
             }
             onClick={confirmBooking}
-            className="mt-5 w-full rounded-full bg-rose-600 text-white py-2.5 font-semibold hover:bg-rose-700 disabled:opacity-40"
+            className="mt-8 w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white py-3.5 font-semibold text-base shadow-lg hover:opacity-90 transition disabled:opacity-40"
           >
             {booking ? "Booking..." : "Confirm Ticket"}
           </button>
         </section>
       </div>
-    </main>
-  );
+    </div>
+  </main>
+);
 }

@@ -126,25 +126,33 @@ export default function DriverPage() {
     }
   }
 
-  return (
-    <main className="max-w-6xl mx-auto p-6">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Driver Assignment</h1>
-        <p className="text-slate-600 mt-1">
+ return (
+  <main className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 py-12 px-6">
+    <div className="max-w-7xl mx-auto">
+
+      {/* Header */}
+      <header className="mb-10">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent">
+          Driver Assignment
+        </h1>
+        <p className="text-slate-600 mt-2 text-lg">
           Assign drivers to buses per <b>day</b> and <b>shift</b>. Vehicles in{" "}
           <b>maintenance</b> cannot be assigned.
         </p>
       </header>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-rose-700">
+        <div className="mb-8 rounded-2xl border border-rose-200 bg-rose-50 px-6 py-4 text-rose-700 shadow-sm">
           {error}
         </div>
       )}
 
-      <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
-          <div className="flex gap-3">
+      <section className="bg-white/80 backdrop-blur-md rounded-3xl border border-white shadow-xl p-8">
+
+        {/* Filters */}
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between mb-8">
+
+          <div className="flex gap-6">
             <div>
               <label className="block text-sm font-medium text-slate-700">
                 Date
@@ -153,7 +161,7 @@ export default function DriverPage() {
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="mt-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                className="mt-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
               />
             </div>
 
@@ -164,7 +172,7 @@ export default function DriverPage() {
               <select
                 value={shift}
                 onChange={(e) => setShift(e.target.value as ShiftType)}
-                className="mt-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                className="mt-2 rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
               >
                 <option value="morning">Morning</option>
                 <option value="day">Day</option>
@@ -174,61 +182,77 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div>
+          <div className="flex gap-3">
             <button
               onClick={loadAll}
               disabled={loading}
-              className="mr-2 rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-medium hover:bg-slate-50 shadow-sm transition disabled:opacity-50"
             >
               {loading ? "Loading..." : "Refresh"}
             </button>
+
             <Link
               href="/driver/history"
-              className="rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-50"
+              className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-5 py-3 text-sm font-medium shadow-md hover:opacity-90 transition"
             >
               History
             </Link>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Table */}
+        <div className="overflow-x-auto rounded-2xl border border-slate-200">
           <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-slate-600">
-                <th className="py-2">Driver</th>
-                <th className="py-2">License</th>
-                <th className="py-2">Contact</th>
-                <th className="py-2">Current Vehicle</th>
-                <th className="py-2">Assign Vehicle</th>
-                <th className="py-2">Actions</th>
+            <thead className="bg-slate-50 text-slate-600 uppercase text-xs tracking-wider">
+              <tr>
+                <th className="py-4 px-4 text-left">Driver</th>
+                <th className="py-4 px-4 text-left">License</th>
+                <th className="py-4 px-4 text-left">Contact</th>
+                <th className="py-4 px-4 text-left">Current Vehicle</th>
+                <th className="py-4 px-4 text-left">Assign Vehicle</th>
+                <th className="py-4 px-4 text-left">Actions</th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {drivers.map((d) => {
                 const selectedVehicleId =
                   selectedVehicleByDriver[d.driverId] ?? "";
                 const selectedVehicle =
                   selectedVehicleId === ""
                     ? null
-                    : (vehiclesById.get(Number(selectedVehicleId)) ?? null);
+                    : vehiclesById.get(Number(selectedVehicleId)) ?? null;
 
                 return (
-                  <tr key={d.driverId} className="border-t">
-                    <td className="py-3 font-semibold text-slate-900">
+                  <tr
+                    key={d.driverId}
+                    className="hover:bg-slate-50 transition"
+                  >
+                    <td className="py-4 px-4 font-semibold text-slate-900">
                       {d.name}
                     </td>
-                    <td className="py-3 text-slate-700">{d.licenseNumber}</td>
-                    <td className="py-3 text-slate-700">
-                      {d.contactInfo ?? "-"}
-                    </td>
-                    <td className="py-3 text-slate-700">
-                      {d.assignedVehicle ? d.assignedVehicle.licensePlate : "—"}
+
+                    <td className="py-4 px-4 text-slate-700">
+                      {d.licenseNumber}
                     </td>
 
-                    <td className="py-3">
+                    <td className="py-4 px-4 text-slate-700">
+                      {d.contactInfo ?? "-"}
+                    </td>
+
+                    <td className="py-4 px-4 text-slate-700">
+                      {d.assignedVehicle ? (
+                        <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-medium">
+                          {d.assignedVehicle.licensePlate}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+
+                    <td className="py-4 px-4">
                       <select
-                        className="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2"
+                        className="w-full rounded-2xl border border-slate-300 bg-white px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
                         value={selectedVehicleId}
                         onChange={(e) =>
                           setSelectedVehicleByDriver((prev) => ({
@@ -249,6 +273,7 @@ export default function DriverPage() {
                           const assigned = v.assignedDriver
                             ? ` — assigned to ${v.assignedDriver.name}`
                             : "";
+
                           return (
                             <option
                               key={v.vehicleId}
@@ -264,13 +289,13 @@ export default function DriverPage() {
                       </select>
 
                       {selectedVehicle?.status === "maintenance" && (
-                        <div className="mt-1 text-xs text-rose-700">
+                        <div className="mt-2 text-xs text-rose-600 font-medium">
                           This vehicle is in maintenance. Assignment is blocked.
                         </div>
                       )}
                     </td>
 
-                    <td className="py-3 flex gap-2">
+                    <td className="py-4 px-4 flex gap-3">
                       <button
                         onClick={() => assign(d.driverId)}
                         disabled={
@@ -278,7 +303,7 @@ export default function DriverPage() {
                           selectedVehicleId === "" ||
                           selectedVehicle?.status === "maintenance"
                         }
-                        className="rounded-xl bg-slate-900 text-white px-3 py-2 text-sm disabled:opacity-40"
+                        className="rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white px-4 py-2 text-sm font-medium shadow-md hover:opacity-90 transition disabled:opacity-40"
                       >
                         Assign
                       </button>
@@ -286,7 +311,7 @@ export default function DriverPage() {
                       <button
                         onClick={() => unassign(d.driverId)}
                         disabled={loading || !d.assignedVehicle}
-                        className="rounded-xl border border-slate-300 px-3 py-2 text-sm hover:bg-slate-50 disabled:opacity-40"
+                        className="rounded-2xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium hover:bg-slate-50 transition disabled:opacity-40"
                       >
                         Unassign
                       </button>
@@ -297,7 +322,10 @@ export default function DriverPage() {
 
               {drivers.length === 0 && (
                 <tr>
-                  <td className="py-6 text-slate-500" colSpan={6}>
+                  <td
+                    className="py-8 text-center text-slate-500"
+                    colSpan={6}
+                  >
                     No drivers found.
                   </td>
                 </tr>
@@ -306,6 +334,7 @@ export default function DriverPage() {
           </table>
         </div>
       </section>
-    </main>
-  );
+    </div>
+  </main>
+);
 }

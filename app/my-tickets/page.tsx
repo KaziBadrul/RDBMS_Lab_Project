@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import CancelButtonClient from "@/components/ticketing/CancelButtonClient";
 
 export default async function MyTicketsPage() {
     const user = await getCurrentUser();
@@ -11,17 +12,10 @@ export default async function MyTicketsPage() {
         redirect("/login");
     }
 
-    // Fetch tickets for the current user
-    // In a real app, Ticket would be linked to UserRole via PassengerID or UserID.
-    // For this lab, we'll assume the logged in username matches the passenger name or we just show all for demo if not linked.
-    // Let's try to find tickets where passenger name matches username or some logic.
-    // Actually, let's just fetch all tickets for now to demonstrate the cancellation UI, 
-    // or filter if we had a proper User -> Passenger link.
-
     const tickets = await prisma.ticket.findMany({
         where: {
             passenger: {
-                name: user.username // Simple link for the lab demo
+                name: user.username
             }
         },
         include: {
@@ -38,91 +32,188 @@ export default async function MyTicketsPage() {
     });
 
     return (
-        <main className="p-8 max-w-5xl mx-auto">
-            <div className="mb-8">
-                <Link href="/" className="text-darkRed hover:underline text-sm mb-2 block">
-                    &larr; Back to Dashboard
-                </Link>
-                <h1 className="text-4xl font-bold text-navy">My Bookings</h1>
-                <p className="text-gray-600 mt-2">Manage your tickets and request refunds.</p>
-            </div>
+        <main className="min-h-screen bg-gradient-to-br from-white to-rose-50/40 py-12 px-6">
+            <div className="max-w-6xl mx-auto">
 
-            <div className="space-y-6">
-                {tickets.length === 0 ? (
-                    <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-                        <p className="text-gray-500">You haven't booked any tickets yet.</p>
-                        <Link href="/ticketing" className="text-darkRed font-bold mt-4 inline-block hover:underline">
-                            Book your first trip &rarr;
-                        </Link>
-                    </div>
-                ) : (
-                    tickets.map((ticket) => (
-                        <div key={ticket.ticketId} className={`bg-white rounded-xl shadow-sm border ${ticket.status === 'cancelled' ? 'border-gray-200 opacity-75' : 'border-darkRed/10'} overflow-hidden`}>
-                            <div className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div>
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${ticket.status === 'cancelled' ? 'bg-gray-100 text-gray-500' : 'bg-green-100 text-green-700'
-                                            }`}>
-                                            {ticket.status}
-                                        </span>
-                                        <span className="text-sm text-gray-400">ID: #{ticket.ticketId}</span>
-                                    </div>
-                                    <h3 className="text-xl font-bold text-navy">
-                                        {ticket.trip.route.startLocation} &rarr; {ticket.trip.route.endLocation}
-                                    </h3>
-                                    <p className="text-sm text-gray-600 mt-1">
-                                        Departure: {format(new Date(ticket.trip.departureTime), "PPP p")}
-                                    </p>
-                                    <p className="text-sm font-medium mt-1">Seat {ticket.seatNumber}</p>
-                                </div>
+                {/* Header */}
+                <div className="mb-12">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center text-sm text-gray-500 hover:text-darkRed transition-colors"
+                    >
+                        &larr; Back to Dashboard
+                    </Link>
 
-                                <div className="flex flex-col items-end gap-2 text-right">
-                                    <div className="text-2xl font-bold text-navy">৳{Number(ticket.price)}</div>
-                                    {ticket.status === 'booked' ? (
-                                        <CancelTicketButton ticketId={ticket.ticketId} departureTime={ticket.trip.departureTime} price={Number(ticket.price)} />
-                                    ) : (
-                                        <div className="text-sm">
-                                            {ticket.refund && (
-                                                <p className="text-darkRed font-medium">Refunded: ৳{Number(ticket.refund.amount)}</p>
-                                            )}
-                                            <p className="text-gray-500 italic text-xs mt-1">Cancelled on {ticket.refund ? format(new Date(ticket.refund.refundDate), "PP") : 'N/A'}</p>
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-navy mt-4 tracking-tight">
+                        My Bookings
+                    </h1>
+
+                    <p className="text-gray-500 mt-3 text-lg">
+                        Manage your tickets and request refunds easily.
+                    </p>
+                </div>
+
+                {/* Tickets */}
+                <div className="space-y-8">
+                    {tickets.length === 0 ? (
+                        <div className="bg-white/80 backdrop-blur rounded-2xl border border-gray-200 p-16 text-center shadow-sm">
+                            <div className="text-5xl mb-6">🎫</div>
+                            <p className="text-gray-600 text-lg">
+                                You haven't booked any tickets yet.
+                            </p>
+                            <Link
+                                href="/ticketing"
+                                className="mt-6 inline-block bg-darkRed text-white px-6 py-3 rounded-xl font-semibold hover:scale-105 hover:shadow-lg transition-all duration-300"
+                            >
+                                Book your first trip →
+                            </Link>
+                        </div>
+                    ) : (
+                        tickets.map((ticket) => (
+                            <div
+                                key={ticket.ticketId}
+                                className={`group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 border ${
+                                    ticket.status === "cancelled"
+                                        ? "border-gray-200 opacity-80"
+                                        : "border-darkRed/10 hover:border-darkRed/30"
+                                } overflow-hidden`}
+                            >
+                                <div className="p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+
+                                    {/* Left Section */}
+                                    <div>
+                                        <div className="flex items-center gap-4 mb-3">
+
+                                            <span
+                                                className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${
+                                                    ticket.status === "cancelled"
+                                                        ? "bg-gray-100 text-gray-500"
+                                                        : "bg-emerald-100 text-emerald-700"
+                                                }`}
+                                            >
+                                                {ticket.status}
+                                            </span>
+
+                                            <span className="text-sm text-gray-400">
+                                                Booking ID #{ticket.ticketId}
+                                            </span>
                                         </div>
-                                    )}
+
+                                        <h3 className="text-2xl font-bold text-navy group-hover:text-darkRed transition-colors">
+                                            {ticket.trip.route.startLocation} →{" "}
+                                            {ticket.trip.route.endLocation}
+                                        </h3>
+
+                                        <p className="text-gray-500 mt-2">
+                                            Departure:{" "}
+                                            {format(
+                                                new Date(ticket.trip.departureTime),
+                                                "PPP p"
+                                            )}
+                                        </p>
+
+                                        <p className="mt-2 text-sm font-medium text-gray-700 bg-gray-100 inline-block px-3 py-1 rounded-lg">
+                                            Seat {ticket.seatNumber}
+                                        </p>
+                                    </div>
+
+                                    {/* Right Section */}
+                                    <div className="flex flex-col items-start lg:items-end gap-4">
+
+                                        <div className="text-3xl font-extrabold text-navy">
+                                            ৳{Number(ticket.price)}
+                                        </div>
+
+                                        {ticket.status === "booked" ? (
+                                            <CancelTicketButton
+                                                ticketId={ticket.ticketId}
+                                                departureTime={ticket.trip.departureTime}
+                                                price={Number(ticket.price)}
+                                            />
+                                        ) : (
+                                            <div className="text-sm text-right">
+                                                {ticket.refund && (
+                                                    <p className="text-darkRed font-semibold">
+                                                        Refunded: ৳
+                                                        {Number(ticket.refund.amount)}
+                                                    </p>
+                                                )}
+                                                <p className="text-gray-400 italic mt-1">
+                                                    Cancelled on{" "}
+                                                    {ticket.refund
+                                                        ? format(
+                                                              new Date(
+                                                                  ticket.refund.refundDate
+                                                              ),
+                                                              "PP"
+                                                          )
+                                                        : "N/A"}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
-                )}
-            </div>
+                        ))
+                    )}
+                </div>
 
-            <div className="mt-12 bg-cream p-6 rounded-xl border border-darkRed/20">
-                <h4 className="font-bold text-navy mb-3">Refund Policy</h4>
-                <ul className="text-sm space-y-2 text-gray-700">
-                    <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-darkRed" />
-                        <span><strong>100% Refund:</strong> Cancellations made more than 24 hours before departure.</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-darkRed" />
-                        <span><strong>75% Refund:</strong> Cancellations made between 12 and 24 hours before departure.</span>
-                    </li>
-                    <li className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-darkRed" />
-                        <span><strong>50% Refund:</strong> Cancellations made less than 12 hours before departure.</span>
-                    </li>
-                </ul>
+                {/* Refund Policy */}
+                <div className="mt-16 bg-white rounded-2xl shadow-sm border border-darkRed/10 p-8">
+                    <h4 className="text-xl font-bold text-navy mb-6">
+                        Refund Policy
+                    </h4>
+
+                    <div className="grid md:grid-cols-3 gap-6 text-sm">
+                        <div className="p-5 rounded-xl bg-emerald-50 border border-emerald-100">
+                            <p className="font-bold text-emerald-700 mb-2">
+                                100% Refund
+                            </p>
+                            <p className="text-gray-600">
+                                Cancellations made more than 24 hours before departure.
+                            </p>
+                        </div>
+
+                        <div className="p-5 rounded-xl bg-yellow-50 border border-yellow-100">
+                            <p className="font-bold text-yellow-700 mb-2">
+                                75% Refund
+                            </p>
+                            <p className="text-gray-600">
+                                Cancellations made between 12–24 hours before departure.
+                            </p>
+                        </div>
+
+                        <div className="p-5 rounded-xl bg-rose-50 border border-rose-100">
+                            <p className="font-bold text-rose-700 mb-2">
+                                50% Refund
+                            </p>
+                            <p className="text-gray-600">
+                                Cancellations made less than 12 hours before departure.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </main>
     );
 }
 
-// Client component for the button
-function CancelTicketButton({ ticketId, departureTime, price }: { ticketId: number, departureTime: Date, price: number }) {
+// Do NOT change functionality
+function CancelTicketButton({
+    ticketId,
+    departureTime,
+    price
+}: {
+    ticketId: number;
+    departureTime: Date;
+    price: number;
+}) {
     return (
-        <CancelButtonClient ticketId={ticketId} departureTime={departureTime.toISOString()} price={price} />
+        <CancelButtonClient
+            ticketId={ticketId}
+            departureTime={departureTime.toISOString()}
+            price={price}
+        />
     );
 }
-
-// Separate client component file would be better, but for brevity we'll use a dynamic component or just a separate file next.
-// I'll create the client component in a separate file to follow Next.js patterns.
-import CancelButtonClient from "@/components/ticketing/CancelButtonClient";
