@@ -3,6 +3,7 @@ import DriverCard from "./DriverCard";
 import MaintenanceCard from "./MaintenanceCard";
 import TripCard from "./TripCard";
 import AdminCard from "./AdminCard";
+import MyTicketsCard from "./MyTicketsCard";
 
 import Link from "next/link";
 import { SessionUser } from "@/lib/auth";
@@ -23,6 +24,9 @@ export default function Dashboard({ user }: { user: SessionUser | null }) {
         </Link>
         <MaintenanceCard />
         <TripCard />
+        <Link href="/my-tickets">
+          <MyTicketsCard />
+        </Link>
         {isAdmin && (
           <Link href="/admin/pricing">
             <AdminCard />

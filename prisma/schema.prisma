@@ -120,7 +120,9 @@ model Ticket {
   seatNumber   Int       @map("SeatNumber")
   ticketId     Int       @id @default(autoincrement()) @map("TicketID")
   tripId       Int       @map("TripID")
+  status       TicketStatus @default(booked) @map("Status")
   payment      Payment?
+  refund       RefundTransaction?
   passenger    Passenger @relation(fields: [passengerId], references: [passengerId])
   seat         Seat      @relation(fields: [tripId, seatNumber], references: [tripId, seatNumber])
   trip         Trip      @relation(fields: [tripId], references: [tripId])
@@ -140,6 +142,17 @@ model Payment {
   ticket        Ticket        @relation(fields: [ticketId], references: [ticketId], onDelete: Cascade)
 
   @@map("Payment")
+}
+
+model RefundTransaction {
+  refundId   Int      @id @default(autoincrement()) @map("RefundID")
+  ticketId   Int      @unique @map("TicketID")
+  amount     Decimal  @map("Amount") @db.Decimal(8, 2)
+  refundDate DateTime @default(now()) @map("RefundDate")
+  reason     String?  @map("Reason") @db.VarChar(255)
+  ticket     Ticket   @relation(fields: [ticketId], references: [ticketId], onDelete: Cascade)
+
+  @@map("RefundTransaction")
 }
 
 model MaintenanceRecord {
@@ -277,6 +290,11 @@ enum UserRoleType {
   passenger
   driver
   mechanic
+}
+
+enum TicketStatus {
+  booked
+  cancelled
 }
 
 enum IncidentSeverity {

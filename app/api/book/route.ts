@@ -23,7 +23,16 @@ export async function POST(req: Request) {
   const uniqueSeatNumbers = Array.from(new Set(seatNumbers));
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: any) => {
+      // 0) Get trip price
+      const trip = await tx.trip.findUnique({
+        where: { tripId },
+        select: { basePrice: true, price: true }
+      });
+
+      if (!trip) throw new Error("Trip not found");
+      const ticketPrice = trip.price;
+
       // 1) Ensure all seats exist and are available
       const availableSeats = await tx.seat.findMany({
         where: {
@@ -69,7 +78,7 @@ export async function POST(req: Request) {
               tripId,
               passengerId: passenger.passengerId,
               seatNumber: sn,
-              price: 0, // replace if you store price
+              price: ticketPrice,
             },
             select: { ticketId: true, seatNumber: true },
           }),

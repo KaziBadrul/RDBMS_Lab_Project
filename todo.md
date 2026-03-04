@@ -14,7 +14,7 @@
   - [x] Apply rule(s) and update `current_fare`
   - [x] Log price change to `PriceChangeLog`
 - [ ] Update Next.js booking API to always use `current_fare`
-- [ ] Admin UI: view pricing changes per trip/route
+- [x] Admin UI: view pricing changes per trip/route
 
 ### Automated Refund / Cancellation System
 - [ ] Create DB procedure `cancel_ticket(ticket_id, cancelled_by, reason)`

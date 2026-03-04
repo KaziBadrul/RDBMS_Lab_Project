@@ -976,3 +976,93 @@ SELECT book_seats(
   '0123456789'
 );
 ```
+
+## Cancel a ticket
+
+```sql
+-- 4. PROCEDURE: cancel_ticket
+-- Purpose: Handles ticket cancellation, refund calculation, and seat release.
+-- Policy: 
+--   > 24h: 100% refund
+--   12h-24h: 75% refund
+--   < 12h: 50% refund
+CREATE OR REPLACE PROCEDURE cancel_ticket(
+    p_ticket_id INT,
+    p_cancelled_by INT,
+    p_reason TEXT
+)
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_trip_id INT;
+    v_seat_number INT;
+    v_price DECIMAL(8, 2);
+    v_departure_time TIMESTAMP;
+    v_hours_until_departure FLOAT;
+    v_refund_amount DECIMAL(8, 2);
+    v_status TEXT;
+BEGIN
+    -- 1. Fetch ticket and trip info
+    SELECT t."TripID", t."SeatNumber", t."Price", tr."DepartureTime", t."Status"::TEXT
+    INTO v_trip_id, v_seat_number, v_price, v_departure_time, v_status
+    FROM "Ticket" t
+    JOIN "Trip" tr ON t."TripID" = tr."TripID"
+    WHERE t."TicketID" = p_ticket_id;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Ticket % not found', p_ticket_id;
+    END IF;
+
+    IF v_status = 'cancelled' THEN
+        RAISE EXCEPTION 'Ticket % is already cancelled', p_ticket_id;
+    END IF;
+
+    -- 2. Calculate hours until departure
+    v_hours_until_departure := EXTRACT(EPOCH FROM (v_departure_time - NOW())) / 3600;
+
+    -- 3. Calculate refund amount based on policy
+    IF v_hours_until_departure > 24 THEN
+        v_refund_amount := v_price;
+    ELSIF v_hours_until_departure >= 12 THEN
+        v_refund_amount := v_price * 0.75;
+    ELSE
+        v_refund_amount := v_price * 0.50;
+    END IF;
+
+    -- 4. Update Ticket status to 'cancelled'
+    UPDATE "Ticket"
+    SET "Status" = 'cancelled'
+    WHERE "TicketID" = p_ticket_id;
+
+    -- 5. Release the seat
+    UPDATE "Seat"
+    SET "Status" = 'available'
+    WHERE "TripID" = v_trip_id AND "SeatNumber" = v_seat_number;
+
+    -- 6. Record Refund Transaction
+    INSERT INTO "RefundTransaction" ("TicketID", "Amount", "Reason", "RefundDate")
+    VALUES (p_ticket_id, v_refund_amount, p_reason, NOW());
+
+    -- 7. Audit Log
+    INSERT INTO "AuditLog" ("Action", "TableName", "RecordID", "UserID", "Details")
+    VALUES (
+        'CANCEL',
+        'Ticket',
+        p_ticket_id,
+        p_cancelled_by,
+        jsonb_build_object(
+            'refund_amount', v_refund_amount,
+            'reason', p_reason,
+            'hours_before_departure', v_hours_until_departure
+        )
+    );
+END;
+$$;
+```
+
+### How to call it
+
+```sql
+-- CALL cancel_ticket(ticket_id, cancelled_by_user_id, 'Reason for cancellation');
+CALL cancel_ticket(45, 1, 'Passenger requested refund');
+```
