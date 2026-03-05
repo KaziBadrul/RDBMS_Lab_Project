@@ -18,7 +18,7 @@ export default function Dashboard({ user }: { user: SessionUser | null }) {
       <aside className="hidden md:flex w-64 bg-white border-r border-slate-100 p-8 flex-col sticky top-0 h-screen">
         <div className="flex items-center gap-3 mb-12">
           <div className="h-9 w-9 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-             <span className="text-white font-bold text-lg italic">T</span>
+            <span className="text-white font-bold text-lg italic">T</span>
           </div>
           <h1 className="text-xl font-black tracking-tight text-slate-800">
             TripWise
@@ -77,13 +77,16 @@ export default function Dashboard({ user }: { user: SessionUser | null }) {
             </div>
           </Link>
 
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
-            <MaintenanceCard />
-          </div>
-
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
-            <TripCard />
-          </div>
+          <Link href="/vehicle-maintenance">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
+              <MaintenanceCard />
+            </div>
+          </Link>
+          <Link href="/trip-lifecycle">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-300">
+              <TripCard />
+            </div>
+          </Link>
 
           <Link href="/my-tickets" className="group transition-all duration-300 hover:-translate-y-2">
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group-hover:shadow-[0_20px_50_rgba(0,0,0,0.08)] transition-shadow duration-300">
