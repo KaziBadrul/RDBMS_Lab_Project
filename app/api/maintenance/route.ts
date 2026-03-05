@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
         date: new Date(serviceDate),
         description: `${maintenanceType}${notes ? ` - ${notes}` : ""}`,
         cost: cost ? parseFloat(cost) : null,
-        // @ts-expect-error: odometer exists in DB but Prisma types might be stale in IDE cache
         odometer: odometer ? parseInt(odometer) : null,
         interval: interval ? parseInt(interval) : null,
       },

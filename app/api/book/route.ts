@@ -90,7 +90,13 @@ export async function POST(req: Request) {
 
     return Response.json({ ok: true, ...result });
   } catch (e: any) {
-    const msg = typeof e?.message === "string" ? e.message : "Booking failed";
+    let msg = typeof e?.message === "string" ? e.message : "Booking failed";
+
+    // Handle Prisma transaction timeout
+    if (msg.includes("expired transaction") || msg.includes("timeout")) {
+      msg = "Time limit exceeded 5s";
+    }
+
     const status = msg.includes("Seat already booked") ? 409 : 500;
     return new Response(msg, { status });
   }

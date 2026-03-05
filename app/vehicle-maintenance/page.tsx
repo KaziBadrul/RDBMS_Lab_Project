@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 
 interface MaintenanceRecord {
   recordId: number;
@@ -129,13 +130,22 @@ export default function VehicleMaintenancePage() {
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <header className="mb-10">
-          <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
-            Vehicle Maintenance
-          </h1>
-          <p className="text-slate-600 mt-2">
-            Add maintenance records and visually validate service intervals.
-          </p>
+        <header className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 tracking-tight">
+              Vehicle Maintenance
+            </h1>
+            <p className="text-slate-600 mt-2">
+              Add maintenance records and visually validate service intervals.
+            </p>
+          </div>
+          <Link
+            href="/vehicle-maintenance/all-records"
+            className="inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-semibold shadow-lg hover:bg-black active:scale-[0.98] transition w-fit"
+          >
+            <span>View All Records</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </Link>
         </header>
 
         {/* Card */}
